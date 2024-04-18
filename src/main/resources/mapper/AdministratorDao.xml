@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yyl.store.dao.AdministratorDao">
+    <insert id="warehousing">
+        insert into goods(
+                          goods_name,
+                          goods_price,
+                          goods_num,
+                          goods_state,
+                          goods_discount,
+                          goods_address,
+                          goods_provide
+        )
+        values (
+                #{req.goodsName},
+                #{req.goodsPrice},
+                #{req.goodsNum},
+                1,
+                1.00,
+                #{users.useAddress},
+                #{users.id}
+               )
+
+    </insert>
+    <update id="delisting">
+        update goods
+        set
+            goods_state = #{x}
+        where
+            goods_name = #{goodsName} and
+            goods_provide = #{id}
+    </update>
+    <update id="adjustPrice">
+        update goods
+        set
+            goods_price = #{req.goodsPrice}
+        where
+            goods_name = #{req.goodsName} and
+            goods_provide = #{id}
+    </update>
+    <update id="adjustDiscount">
+        update goods
+        set
+            goods_discount = #{req.goodsDiscount}
+        where
+            goods_name = #{req.goodsName} and
+            goods_provide = #{id}
+    </update>
+    <select id="selectBalance" resultType="BigDecimal">
+        select use_balance
+        from user
+        where 1=1
+    </select>
+    <select id="select" resultType="com.yyl.store.entity.users">
+        select id as id, use_name as useName, use_account as useAccount, use_password as usePassword, use_level as useLevel, use_balance as useBalance, use_address as useAddress
+        from user
+        where use_account = #{useAccount} and
+              use_password = #{usePassword}
+    </select>
+    <select id="selectProvide" resultType="com.yyl.store.entity.users">
+        select id as id, use_name as useName, use_account as useAccount, use_password as usePassword, use_level as useLevel, use_balance as useBalance, use_address as useAddress
+        from user
+        where id = #{id}
+    </select>
+</mapper>

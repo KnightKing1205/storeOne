@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yyl.store.dao.userDao">
+    <resultMap id="BaseResultMap" type="com.yyl.store.entity.users">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="useAccount" column="use_account" jdbcType="VARCHAR"/>
+        <result property="usePassword" column="use_password" jdbcType="VARCHAR"/>
+        <result property="useName" column="use_name" jdbcType="VARCHAR"/>
+        <result property="useLevel" column="use_level" jdbcType="INTEGER"/>
+        <result property="useBalance" column="use_balance" jdbcType="DECIMAL"/>
+        <result property="useAddress" column="use_address" jdbcType="VARCHAR"/>
+        <result property="token" column="token" jdbcType="VARCHAR"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id,useAccount,usePassword,useName,useLevel,useBalance,useAddress,token
+    </sql>
+    <insert id="inserts">
+        INSERT into user(use_name,
+                         use_account,
+                         use_password,
+                         use_level,
+                         use_balance,
+                         use_address,
+                         token
+        )
+        values (#{req.useName},
+                #{req.useAccount},
+                #{req.usePassword},
+                #{req.useLevel},
+                0.00,
+                #{req.useAddress},
+                #{req.token}
+               )
+    </insert>
+
+    <select id="select" resultType="com.yyl.store.entity.users">
+        select id as id, use_password as usePassword, token as token
+        from user u
+        where u.use_name = #{name}
+    </select>
+</mapper>

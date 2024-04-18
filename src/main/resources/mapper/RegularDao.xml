@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yyl.store.dao.RegularDao">
+    <insert id="enrollRegular">
+        INSERT into user(use_name,
+                         use_account,
+                         use_password,
+                         use_level,
+                         use_balance,
+                         use_address
+        )
+        values (#{req.useName},
+                #{req.useAccount},
+                #{req.usePassword},
+                #{x},
+                0.00,
+                #{req.useAddress}
+               )
+    </insert>
+    <insert id="createStatement">
+        insert into statement(
+                              buy_name,
+                              buy_account,
+                              buy_adress,
+                              shop_name,
+                              shop_num,
+                              send_name,
+                              send_account,
+                              send_address,
+                              money,
+                              create_date,
+                              remark
+        )
+        values (
+                #{user.useName},
+                #{user.useAccount},
+                #{user.useAddress},
+                #{goods.goodsName},
+                #{req.goodsNum},
+                #{provide.useName},
+                #{provide.useAccount},
+                #{provide.useAddress},
+                #{money},
+                #{date},
+                null
+               )
+    </insert>
+    <update id="recharge">
+        update user
+        set use_balance = (use_balance + #{req.money})
+        where use_account = #{req.useAccount} and
+              use_password = #{req.usePassword}
+    </update>
+    <update id="goodsNumReduce">
+        update goods
+        set goods_num = (goods_num - #{req.goodsNum})
+        where goods_name = #{req.goodsName}
+    </update>
+    <update id="balanceReduce">
+        update user
+        set use_balance = (use_balance - #{money})
+        where use_account = #{req.useAccount} and
+            use_password = #{req.usePassword}
+    </update>
+
+    <select id="selectBalance" resultType="BigDecimal">
+        select use_balance
+        from user as u
+        where u.use_account = #{req.useAccount} and
+              u.use_password = #{req.usePassword}
+    </select>
+    <select id="selectGoods" resultType="com.yyl.store.entity.goods">
+        select id as id, goods_name as goodsName, goods_price as goodsPrice, goods_num as goodsNum, goods_discount as goodsDiscount, goods_address as goodsAddress, goods_provide as goodsProvide
+        from goods
+        where goods_state = 1
+    </select>
+    <select id="selectStatement" resultType="com.yyl.store.entity.statement">
+        select id as id, buy_name as buyName, buy_account as buyAccount, buy_adress as buyAddress, shop_num as shopNum, shop_name as shopName, send_name as sendName, send_account as sendAccount, send_address as sendAddress, money as money, create_date as createDate, remark as remark
+        from statement
+        where buy_account = #{req.useAccount} and
+              shop_num = #{req.goodsNum} and
+              shop_name = #{req.goodsName} and
+              money = #{money} and
+              send_account = #{provide.useAccount}
+    </select>
+</mapper>
