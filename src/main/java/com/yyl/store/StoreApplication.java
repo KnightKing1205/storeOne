@@ -17,6 +17,7 @@ public class StoreApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(StoreApplication.class, args);
+        log.info("123");
         log.info("http://localhost:8080/doc.html#/");
         log.info("项目启动成功·····");
     }
