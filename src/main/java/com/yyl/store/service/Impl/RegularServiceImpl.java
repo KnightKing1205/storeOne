@@ -1,23 +1,30 @@
 package com.yyl.store.service.Impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yyl.store.dao.AdministratorDao;
 import com.yyl.store.dao.RegularDao;
 import com.yyl.store.entity.goods;
+import com.yyl.store.entity.req.Token;
 import com.yyl.store.entity.req.accountReq;
 import com.yyl.store.entity.req.buyReq;
 import com.yyl.store.entity.req.enrollReq;
 import com.yyl.store.entity.req.rechargeReq;
 import com.yyl.store.entity.statement;
 import com.yyl.store.entity.users;
+import com.yyl.store.service.LoginToken;
 import com.yyl.store.service.RegularService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author 65199
@@ -34,6 +41,14 @@ public class RegularServiceImpl implements RegularService {
 
     @Autowired
     private AdministratorDao administratorDao;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    //json转化工具
+    private static final ObjectMapper mapper = new ObjectMapper();
     @Override
     public void enrollRegular(enrollReq req,int x) {
         regularDao.enrollRegular(req,x);
@@ -83,5 +98,48 @@ public class RegularServiceImpl implements RegularService {
         log.info("3");
         //返回订单
         return regularDao.selectStatement(req,provide,money);
+    }
+
+    /**
+     * 用户登录
+     * @param req
+     * @return
+     */
+    @Override
+    public String loginRegular(accountReq req) throws JsonProcessingException {
+        //先查询redis中有没有用户的token
+        String token = stringRedisTemplate.opsForValue().get(req.getUseAccount());
+        //如果没有，那么查询数据库该账号是否存在
+        if (token==null){
+            users is = regularDao.selectIs(req);
+            if (is == null){
+                return "用户密码错误";
+            }
+            //如果存在，则是登录过期，那么重新生成token
+            LoginToken loginToken = new LoginToken();
+            token = loginToken.returnLogin(req.getUseAccount());
+            stringRedisTemplate.opsForValue().set(req.getUseAccount(), token,8, TimeUnit.HOURS);
+//            序列化
+            String json = mapper.writeValueAsString(req);
+//            存储token与用户的连接信息
+            stringRedisTemplate.opsForValue().set(token, json,8, TimeUnit.HOURS);
+//            redisTemplate.opsForValue().set(token,req,8,TimeUnit.HOURS);
+        }
+        return token;
+    }
+
+    /**
+     * @param req
+     * @return
+     */
+    @Override
+    public BigDecimal selectBalance(Token req) throws JsonProcessingException {
+        String val = stringRedisTemplate.opsForValue().get(req.getToken());
+        //反序列化
+        accountReq user = mapper.readValue(val, accountReq.class);
+//        accountReq user = (accountReq) redisTemplate.opsForValue().get(req);
+        log.info(user.getUseAccount());
+        log.info(user.getUsePassword());
+        return regularDao.selectBalance(user);
     }
 }

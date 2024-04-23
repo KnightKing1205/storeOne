@@ -40,4 +40,6 @@ public interface RegularDao {
     statement selectStatement(@Param("req") buyReq req,
                               @Param("provide") users provide,
                               @Param("money") BigDecimal money);
+
+    users selectIs(@Param("req") accountReq req);
 }

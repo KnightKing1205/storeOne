@@ -85,4 +85,12 @@
               money = #{money} and
               send_account = #{provide.useAccount}
     </select>
+    <select id="selectIs" resultType="com.yyl.store.entity.users">
+        select id as id
+        from user u
+        where u.use_account = #{req.useAccount} and
+            u.use_password = #{req.usePassword}
+    </select>
+
+
 </mapper>

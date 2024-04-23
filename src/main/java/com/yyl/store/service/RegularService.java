@@ -1,6 +1,8 @@
 package com.yyl.store.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yyl.store.entity.goods;
+import com.yyl.store.entity.req.Token;
 import com.yyl.store.entity.req.accountReq;
 import com.yyl.store.entity.req.buyReq;
 import com.yyl.store.entity.req.enrollReq;
@@ -21,4 +23,8 @@ public interface RegularService {
     List<goods> selectGoods(accountReq req);
 
     statement buy(buyReq req);
+
+    String loginRegular(accountReq req) throws JsonProcessingException;
+
+    BigDecimal selectBalance(Token req) throws JsonProcessingException;
 }

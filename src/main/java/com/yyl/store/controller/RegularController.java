@@ -1,7 +1,9 @@
 package com.yyl.store.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yyl.store.dao.RegularDao;
 import com.yyl.store.entity.goods;
+import com.yyl.store.entity.req.Token;
 import com.yyl.store.entity.req.accountReq;
 import com.yyl.store.entity.req.buyReq;
 import com.yyl.store.entity.req.enrollReq;
@@ -44,11 +46,16 @@ public class RegularController {
         regularService.enrollRegular(req,1);
         return "success";
     }
+    @ApiOperation(value = "登录")
+    @PostMapping("/loginRegular")
+    public String loginRegular(@RequestBody accountReq req) throws JsonProcessingException {
+        return regularService.loginRegular(req);
+    }
 
     @ApiOperation(value = "查询余额")
-    @GetMapping("/selectBalance")
-    public BigDecimal selectBalance(@RequestBody accountReq req){
-        return regularDao.selectBalance(req);
+    @PostMapping("/selectBalance")
+    public BigDecimal selectBalance(@RequestBody Token req) throws JsonProcessingException {
+        return regularService.selectBalance(req);
     }
     @ApiOperation(value = "充值")
     @PostMapping("/recharge")
