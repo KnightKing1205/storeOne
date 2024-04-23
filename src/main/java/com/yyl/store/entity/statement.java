@@ -1,9 +1,14 @@
 package com.yyl.store.entity;
 
 import com.alibaba.excel.annotation.ExcelProperty;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -15,9 +20,13 @@ import java.util.Date;
  * @version: 1.0
  */
 @Data
-public class statement {
+@EqualsAndHashCode(callSuper = false)
+@Accessors(chain = true)
+@TableName("statement")
+public class statement implements Serializable {
     @ApiModelProperty(value = "id")
     @ExcelProperty(value = "id")
+    @TableId(value = "id")
     private Integer id;
 
     @ApiModelProperty(value = "购买者姓名")

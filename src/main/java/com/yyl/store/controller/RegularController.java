@@ -10,6 +10,7 @@ import com.yyl.store.entity.req.enrollReq;
 import com.yyl.store.entity.req.rechargeReq;
 import com.yyl.store.entity.statement;
 import com.yyl.store.service.RegularService;
+import com.yyl.store.service.StatementService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,8 @@ import java.util.List;
 public class RegularController {
     @Autowired
     private RegularService regularService;
+    @Autowired
+    private StatementService statementService;
 
     @Autowired
     private RegularDao regularDao;
@@ -59,13 +62,14 @@ public class RegularController {
     }
     @ApiOperation(value = "充值")
     @PostMapping("/recharge")
-    public String recharge (@RequestBody rechargeReq req){
+    public String recharge (@RequestBody rechargeReq req) throws JsonProcessingException {
         return "已成功充值"+req.getMoney()+",您当前余额为："+regularService.recharge(req);
     }
     @ApiOperation(value = "查询商品")
     @PostMapping("/selectGoods")
-    public List<goods> selectGoods(@RequestBody accountReq req){
-        return regularService.selectGoods(req);
+    public statement selectGoods(@RequestBody accountReq req){
+        return statementService.getById(1);
+//        return regularService.selectGoods(req);
     }
 
     @ApiOperation(value = "购买")

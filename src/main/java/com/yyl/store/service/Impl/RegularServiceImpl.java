@@ -14,6 +14,7 @@ import com.yyl.store.entity.statement;
 import com.yyl.store.entity.users;
 import com.yyl.store.service.LoginToken;
 import com.yyl.store.service.RegularService;
+import com.yyl.store.service.StatementService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,10 +22,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
+import static java.lang.Thread.sleep;
 
 /**
  * @author 65199
@@ -38,7 +42,8 @@ import java.util.concurrent.TimeUnit;
 public class RegularServiceImpl implements RegularService {
     @Autowired
     private RegularDao regularDao;
-
+    @Autowired
+    private StatementService statementService;
     @Autowired
     private AdministratorDao administratorDao;
 
@@ -49,30 +54,66 @@ public class RegularServiceImpl implements RegularService {
 
     //json转化工具
     private static final ObjectMapper mapper = new ObjectMapper();
+
     @Override
-    public void enrollRegular(enrollReq req,int x) {
-        regularDao.enrollRegular(req,x);
+    public void enrollRegular(enrollReq req, int x) {
+        regularDao.enrollRegular(req, x);
+    }
+
+    /**
+     * 用户充值
+     *
+     * @param req
+     * @return
+     * @throws JsonProcessingException
+     */
+    @Override
+    public BigDecimal recharge(rechargeReq req) throws JsonProcessingException {
+        //根据token取出用户信息
+        String val = stringRedisTemplate.opsForValue().get(req.getToken());
+        if (val == null) {
+            return null;
+        }
+        // 反序列化
+        accountReq user = mapper.readValue(val, accountReq.class);
+        while (true) {
+            if (!Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(user.getUseAccount() + "balance", "1"))) {
+                break;
+            }
+        }
+        log.info("开始充值");
+
+        //休眠20s
+        try {
+            Thread.sleep(1000 * 20);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        //充值
+        regularDao.recharge(req, user);
+        //开锁
+        redisTemplate.delete(user.getUseAccount() + "balance");
+        //返回用户余额
+        return regularDao.selectBalance(user);
     }
 
     @Override
-    public BigDecimal recharge(rechargeReq req) {
-        regularDao.recharge(req);
-        return regularDao.selectBalance(req);
-    }
-
-    @Override
-    public List<goods> selectGoods(accountReq req) {
-
-        return regularDao.selectGoods(req);
+    public List<statement> selectGoods(accountReq req) {
+        List ids = new ArrayList<>();
+        ids.add(1);
+        ids.add(2);
+        int id = 1;
+        return statementService.getBaseMapper().selectBatchIds(ids);
+//        return regularDao.selectGoods(req);
     }
 
     @Override
     public statement buy(buyReq req) {
-        users user =administratorDao.select(req.getUseAccount(), req.getUsePassword());
+        users user = administratorDao.select(req.getUseAccount(), req.getUsePassword());
         List<goods> commodities = regularDao.selectGoods(req);
         goods commodity = new goods();
         for (goods x : commodities) {
-            if (Objects.equals(x.getGoodsName(), req.getGoodsName())){
+            if (Objects.equals(x.getGoodsName(), req.getGoodsName())) {
                 commodity = x;
             }
         }
@@ -81,7 +122,7 @@ public class RegularServiceImpl implements RegularService {
         BigDecimal num = new BigDecimal(req.getGoodsNum());
         BigDecimal money = commodity.getGoodsPrice().multiply(num.multiply(commodity.getGoodsDiscount()));
         if (user.getUseBalance().compareTo(money) < 0
-                || req.getGoodsNum() > commodity.getGoodsNum()){
+                || req.getGoodsNum() > commodity.getGoodsNum()) {
             log.info("5");
             return null;
         }
@@ -91,40 +132,38 @@ public class RegularServiceImpl implements RegularService {
         regularDao.goodsNumReduce(req);
         log.info("1");
         //生成订单
-        regularDao.createStatement(req,user,commodity,provide,money,date);
+        regularDao.createStatement(req, user, commodity, provide, money, date);
         log.info("2");
         //扣款
-        regularDao.balanceReduce(req,money);
+        regularDao.balanceReduce(req, money);
         log.info("3");
         //返回订单
-        return regularDao.selectStatement(req,provide,money);
+        return regularDao.selectStatement(req, provide, money);
     }
 
     /**
      * 用户登录
+     *
      * @param req
      * @return
      */
     @Override
     public String loginRegular(accountReq req) throws JsonProcessingException {
-        //先查询redis中有没有用户的token
-        String token = stringRedisTemplate.opsForValue().get(req.getUseAccount());
-        //如果没有，那么查询数据库该账号是否存在
-        if (token==null){
-            users is = regularDao.selectIs(req);
-            if (is == null){
-                return "用户密码错误";
-            }
-            //如果存在，则是登录过期，那么重新生成token
-            LoginToken loginToken = new LoginToken();
-            token = loginToken.returnLogin(req.getUseAccount());
-            stringRedisTemplate.opsForValue().set(req.getUseAccount(), token,8, TimeUnit.HOURS);
-//            序列化
-            String json = mapper.writeValueAsString(req);
-//            存储token与用户的连接信息
-            stringRedisTemplate.opsForValue().set(token, json,8, TimeUnit.HOURS);
-//            redisTemplate.opsForValue().set(token,req,8,TimeUnit.HOURS);
+        //查询数据库该账号是否存在
+        users is = regularDao.selectIs(req);
+        if (is == null) {
+            return "用户密码错误";
         }
+
+        //生成token
+        LoginToken loginToken = new LoginToken();
+        String token = loginToken.returnLogin(req.getUseAccount());
+
+//            序列化
+        String jsonUser = mapper.writeValueAsString(req);
+
+//            存储token与用户的连接信息
+        stringRedisTemplate.opsForValue().set(token, jsonUser, 8, TimeUnit.HOURS);
         return token;
     }
 
@@ -137,9 +176,20 @@ public class RegularServiceImpl implements RegularService {
         String val = stringRedisTemplate.opsForValue().get(req.getToken());
         //反序列化
         accountReq user = mapper.readValue(val, accountReq.class);
-//        accountReq user = (accountReq) redisTemplate.opsForValue().get(req);
-        log.info(user.getUseAccount());
-        log.info(user.getUsePassword());
-        return regularDao.selectBalance(user);
+        while (true) {
+            if (!Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(user.getUseAccount() + "balance", "1"))) {
+                break;
+            }
+        }
+        //休眠20s
+        try {
+            Thread.sleep(1000 * 10);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        BigDecimal balance = regularDao.selectBalance(user);
+        //开锁
+        redisTemplate.delete(user.getUseAccount() + "balance");
+        return balance;
     }
 }

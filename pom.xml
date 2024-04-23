@@ -111,9 +111,10 @@
             <artifactId>easyexcel-core</artifactId>
             <version>3.1.1</version>
         </dependency>
+<!--        mybatis-plus依赖，也是使用baseMapper的关键-->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-extension</artifactId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
             <version>3.4.3</version>
         </dependency>
 

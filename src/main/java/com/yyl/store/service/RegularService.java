@@ -18,9 +18,9 @@ import java.util.List;
 public interface RegularService {
     void enrollRegular(enrollReq req,int x);
 
-    BigDecimal recharge(rechargeReq req);
+    BigDecimal recharge(rechargeReq req) throws JsonProcessingException;
 
-    List<goods> selectGoods(accountReq req);
+    List<statement> selectGoods(accountReq req);
 
     statement buy(buyReq req);
 

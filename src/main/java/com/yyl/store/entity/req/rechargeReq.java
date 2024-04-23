@@ -14,7 +14,7 @@ import java.math.BigDecimal;
  * @version: 1.0
  */
 @Data
-public class rechargeReq extends accountReq {
+public class rechargeReq extends Token {
     @ApiModelProperty(value = "充值金额")
     @ExcelProperty(value = "充值金额")
     private BigDecimal money;

@@ -21,7 +21,7 @@ public interface RegularDao {
 
     BigDecimal selectBalance (@Param("req") accountReq req);
 
-    void recharge(@Param("req") rechargeReq req);
+    void recharge(@Param("req") rechargeReq req,@Param("user") accountReq user);
 
     List<goods> selectGoods(accountReq req);
 

@@ -50,8 +50,8 @@
     <update id="recharge">
         update user
         set use_balance = (use_balance + #{req.money})
-        where use_account = #{req.useAccount} and
-              use_password = #{req.usePassword}
+        where use_account = #{user.useAccount} and
+              use_password = #{user.usePassword}
     </update>
     <update id="goodsNumReduce">
         update goods
