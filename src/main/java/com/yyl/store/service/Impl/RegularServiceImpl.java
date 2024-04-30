@@ -10,11 +10,13 @@ import com.yyl.store.entity.req.accountReq;
 import com.yyl.store.entity.req.buyReq;
 import com.yyl.store.entity.req.enrollReq;
 import com.yyl.store.entity.req.rechargeReq;
+import com.yyl.store.entity.ret.Result;
 import com.yyl.store.entity.statement;
 import com.yyl.store.entity.users;
 import com.yyl.store.service.LoginToken;
 import com.yyl.store.service.RegularService;
 import com.yyl.store.service.StatementService;
+import com.yyl.store.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -68,16 +70,13 @@ public class RegularServiceImpl implements RegularService {
      * @throws JsonProcessingException
      */
     @Override
-    public BigDecimal recharge(rechargeReq req) throws JsonProcessingException {
-        //根据token取出用户信息
-        String val = stringRedisTemplate.opsForValue().get(req.getToken());
-        if (val == null) {
-            return null;
-        }
-        // 反序列化
-        accountReq user = mapper.readValue(val, accountReq.class);
+    public Result recharge(rechargeReq req) throws JsonProcessingException {
+        accountReq user = UserHolder.getUser();
         while (true) {
-            if (!Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(user.getUseAccount() + "balance", "1"))) {
+            log.info("进入循环");
+            if (Boolean.TRUE.equals(redisTemplate.opsForValue().
+                    setIfAbsent(user.getUseAccount() + "balance", "1",1,TimeUnit.MINUTES))) {
+                log.info("跳出");
                 break;
             }
         }
@@ -94,7 +93,7 @@ public class RegularServiceImpl implements RegularService {
         //开锁
         redisTemplate.delete(user.getUseAccount() + "balance");
         //返回用户余额
-        return regularDao.selectBalance(user);
+        return Result.ok(regularDao.selectBalance(user));
     }
 
     @Override
@@ -143,41 +142,39 @@ public class RegularServiceImpl implements RegularService {
 
     /**
      * 用户登录
-     *
      * @param req
      * @return
      */
     @Override
-    public String loginRegular(accountReq req) throws JsonProcessingException {
+    public Result loginRegular(accountReq req) throws JsonProcessingException {
         //查询数据库该账号是否存在
         users is = regularDao.selectIs(req);
         if (is == null) {
-            return "用户密码错误";
+            return Result.fail("用户密码错误");
         }
-
         //生成token
         LoginToken loginToken = new LoginToken();
         String token = loginToken.returnLogin(req.getUseAccount());
 
-//            序列化
+        //序列化
         String jsonUser = mapper.writeValueAsString(req);
 
-//            存储token与用户的连接信息
-        stringRedisTemplate.opsForValue().set(token, jsonUser, 8, TimeUnit.HOURS);
-        return token;
+        //存储token与用户的连接信息
+        stringRedisTemplate.opsForValue().set(token, jsonUser, 30, TimeUnit.MINUTES);
+        return Result.ok(token);
     }
 
     /**
-     * @param req
+     * 用户查询余额
      * @return
      */
     @Override
-    public BigDecimal selectBalance(Token req) throws JsonProcessingException {
-        String val = stringRedisTemplate.opsForValue().get(req.getToken());
-        //反序列化
-        accountReq user = mapper.readValue(val, accountReq.class);
+    public Result selectBalance() throws JsonProcessingException {
+        accountReq user = UserHolder.getUser();
         while (true) {
-            if (!Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(user.getUseAccount() + "balance", "1"))) {
+//            log.info("进入循环");
+            if (Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(user.getUseAccount() + "balance", "1",1,TimeUnit.MINUTES))) {
+                log.info("跳出");
                 break;
             }
         }
@@ -190,6 +187,6 @@ public class RegularServiceImpl implements RegularService {
         BigDecimal balance = regularDao.selectBalance(user);
         //开锁
         redisTemplate.delete(user.getUseAccount() + "balance");
-        return balance;
+        return Result.ok(balance);
     }
 }
